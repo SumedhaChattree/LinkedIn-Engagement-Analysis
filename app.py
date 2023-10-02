@@ -231,13 +231,6 @@ def page2():
 def page3():
     st.write("# LinkedIn Engagement Analysis")
 
-    #Socials Connection
-    st.sidebar.title('Connect with me -')
-    # Define the HTML code for the buttons
-    linkedin_button = '<a href="https://www.linkedin.com/in/sumedhachattree/" target="_blank" style="text-align: center; margin: 0px 10px; padding: 5px 10px; border-radius: 5px; color: white; background-color: #0077B5; text-decoration: none">LinkedIn</a>'
-    # Display the buttons in the app
-    st.sidebar.markdown(f'{linkedin_button} {github_button} ', unsafe_allow_html=True)
-
     #Contact form
     st.sidebar.markdown('Please fill out the form below to contact me.')
 
