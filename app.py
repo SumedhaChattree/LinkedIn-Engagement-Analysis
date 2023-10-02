@@ -234,8 +234,7 @@ def page3():
     #Socials Connection
     st.sidebar.title('Connect with me -')
     # Define the HTML code for the buttons
-    linkedin_button = '<a href="https://www.linkedin.com/in/tulipaggarwal/" target="_blank" style="text-align: center; margin: 0px 10px; padding: 5px 10px; border-radius: 5px; color: white; background-color: #0077B5; text-decoration: none">LinkedIn</a>'
-    github_button = '<a href="https://github.com/TulipAggarwal" target="_blank" style="text-align: center; margin: 0px 10px; padding: 5px 10px; border-radius: 5px; color: white; background-color: #24292E; text-decoration: none">GitHub</a>'
+    linkedin_button = '<a href="https://www.linkedin.com/in/sumedhachattree/" target="_blank" style="text-align: center; margin: 0px 10px; padding: 5px 10px; border-radius: 5px; color: white; background-color: #0077B5; text-decoration: none">LinkedIn</a>'
     # Display the buttons in the app
     st.sidebar.markdown(f'{linkedin_button} {github_button} ', unsafe_allow_html=True)
 
