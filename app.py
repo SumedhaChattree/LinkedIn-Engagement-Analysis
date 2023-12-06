@@ -16,6 +16,7 @@ import altair as alt
 def main_page():
     
     st.write("# LinkedIn Engagement Analysis")
+    st.write("Created By **Sumedha Chattree**")
 
     # sidebar
     st.sidebar.markdown("# LinkedIn Engagement Analysis")
