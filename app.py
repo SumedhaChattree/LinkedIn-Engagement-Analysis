@@ -15,11 +15,12 @@ import altair as alt
 
 def main_page():
     
-    st.write("# LinkedIn Engagement Analysis")
-    st.write("Created By **Sumedha Chattree**")
+    st.title("📊 LinkedIn Engagement Analyzer")
+    st.caption("Analyze and optimize your content performance with actionable insights")
 
     # sidebar
     st.sidebar.markdown("# LinkedIn Engagement Analysis")
+    st.sidebar.markdown("**Created by Sumedha Chattree**")
     st.sidebar.markdown("You can **start** by uploading your data on the **LinkedIn Engagement Analysis** page.")
     st.sidebar.markdown("The process for obtaining your data can be found on the **Data Directions and Instructions** page.")
 
@@ -40,217 +41,153 @@ def main_page():
 
 def page2():
     st.write("# LinkedIn Engagement Analysis")
-    # sidebar
-    file1 = st.sidebar.file_uploader("Upload Engagements & Impressions File",
+
+    # File upload
+    file1 = st.sidebar.file_uploader(
+        "Upload Engagements & Impressions File",
         type=["xlsx"],
     )
-    if file1 is not None:
-	# To See details
-        file1_details = {"filename":file1.name, "filetype":file1.type,
-                        "filesize":file1.size}
-    try:
-        df = pd.read_excel(file1)
-        df["Date"] = pd.to_datetime(df["Date"],infer_datetime_format = True).dt.date
-    except:
-        df = pd.DataFrame()
-    
-    # code for hardcoded file upload:
-    # load data
-    file2 = st.sidebar.file_uploader("Upload Shares File",
+
+    # ✅ DEMO DATA
+    if file1 is None:
+        st.info("Using demo dataset. Upload your own file for real analysis.")
+
+        df = pd.DataFrame({
+            "Date": pd.date_range(start="2024-01-01", periods=10),
+            "Engagements": [10, 20, 15, 30, 25, 40, 35, 50, 45, 60],
+            "Impressions": [100, 200, 150, 300, 250, 400, 350, 500, 450, 600]
+        })
+        df["Date"] = df["Date"].dt.date
+    else:
+        try:
+            df = pd.read_excel(file1)
+            df["Date"] = pd.to_datetime(df["Date"]).dt.date
+        except Exception as e:
+            st.error(f"Error reading file: {e}")
+            return
+
+    # Second file
+    file2 = st.sidebar.file_uploader(
+        "Upload Shares File",
         type=["csv"],
     )
-    if file2 is not None:
 
-    # To See details
-        file2_details = {"filename":file2.name, "filetype":file2.type,
-                        "filesize":file2.size}
-	
-    #st.write(file1_details)
     try:
-        df2 = pd.read_csv(file2)
-    except:
-        df2 = pd.DataFrame()
-    try:
-        df2["DateTime"] = df2["Date"]
-        df2["Date"] = pd.to_datetime(df2["Date"],infer_datetime_format = True).dt.date
-        df2["Time"] = pd.to_datetime(df2["DateTime"], format="%Y-%m-%d %H:%M:%S").dt.time
-        df2 = df2.rename({'ShareCommentary': 'Post'}, axis=1)
-        df = df.merge(df2,on="Date",how="left")
-        # fill in null post descriptions and urls
-        fill_df = pd.DataFrame()
-        fill_df["Post"] = ["No post this day." for x in range(0,df.shape[0])]
-        fill_df["ShareLink"] = ["https://www.linkedin.com/feed/" for x in range(0,df.shape[0])]
-        df = df.fillna(value=fill_df)
-    except:
-        st.markdown("")
-        df["Post"] = ["Unavailable. Data required." for x in range(0,df.shape[0])]
-        df["ShareLink"] = ["https://www.linkedin.com/feed/" for x in range(0,df.shape[0])]
-    
-    # Setting the Plot 
+        if file2 is not None:
+            df2 = pd.read_csv(file2)
+
+            df2["DateTime"] = df2["Date"]
+            df2["Date"] = pd.to_datetime(df2["Date"]).dt.date
+            df2["Time"] = pd.to_datetime(df2["DateTime"]).dt.time
+            df2 = df2.rename({'ShareCommentary': 'Post'}, axis=1)
+
+            df = df.merge(df2, on="Date", how="left")
+
+        # Fill missing values
+        df["Post"] = df.get("Post", pd.Series(["No post this day."] * len(df)))
+        df["ShareLink"] = df.get("ShareLink", pd.Series(["https://www.linkedin.com/feed/"] * len(df)))
+
+    except Exception as e:
+        st.warning("Issue processing shares file")
+
+    # Plot settings
     st.sidebar.subheader("Setting the Plot")
-    # plot variables
     plot_width = st.sidebar.slider("Plot Width", 1, 25, 7)
     plot_height = st.sidebar.slider("Plot Height", 1, 10, 2)
+
     try:
-        #Date Slider
         min_date = min(df["Date"])
         max_date = max(df["Date"])
-        date_range = (min(df["Date"]),max(df["Date"]))
-        st.markdown("Hover over any point to see details. Click a data point and it will open that LinkedIn post of yours!")
-        date_range  = st.slider('Select Date Range', min_value=min_date, max_value=max_date, value = (min_date,max_date)) # Getting the input.
-        df = df[(df['Date'] >= date_range[0]) & (df['Date'] <= date_range[1])] # Filtering the dataframe.
-        df["Percent"] = round(100 * df["Engagements"].div(df["Impressions"]).replace(np.nan, 0),2)
+
+        st.markdown("Hover over any point to see details.")
+
+        date_range = st.slider(
+            'Select Date Range',
+            min_value=min_date,
+            max_value=max_date,
+            value=(min_date, max_date)
+        )
+
+        df = df[(df['Date'] >= date_range[0]) & (df['Date'] <= date_range[1])]
+
+        df["Percent"] = round(
+            100 * df["Engagements"].div(df["Impressions"]).replace(np.nan, 0), 2
+        )
+
         source = df
 
-        # Create a selection that chooses the nearest point & selects based on x-value
+        # Altair chart (your original)
         nearest = alt.selection(type='single', nearest=True, on='mouseover',
                                 fields=['Date'], empty='none')
-        # The basic line
-        base = alt.Chart(source,title="Engagements & Impressions").encode(
-            alt.X('Date:T', axis=alt.Axis(title=None,format="%m/%d/%Y"))
+
+        base = alt.Chart(source).encode(
+            alt.X('Date:T', axis=alt.Axis(title=None))
         )
-        line1 = base.mark_line(stroke='#86888A', interpolate='monotone').encode(
-            alt.Y('Engagements',
-                  axis=alt.Axis(title='Engagements', titleColor='#86888A'))
+
+        line1 = base.mark_line().encode(
+            alt.Y('Engagements')
         )
-        line2 = base.mark_line(stroke='#0077b5', interpolate='monotone').encode(
-            alt.Y('Impressions',
-                  axis=alt.Axis(title='Impressions', titleColor='#0077b5'))
+
+        line2 = base.mark_line().encode(
+            alt.Y('Impressions')
         )
-        lines = alt.layer(
-            line1,
-            line2
-        ).resolve_scale(
-            y = 'independent'
-        )
-        # Transparent selectors across the chart. This is what tells us
-        # the x-value of the cursor
-        selectors = alt.Chart(source).mark_point().encode(
-            x='Date:T',
-            opacity=alt.value(0),
-        ).add_selection(
-            nearest
-        )
-        # Draw points on the line, and highlight based on selection
-        points1 = line1.mark_point(color='#86888A').encode(
-            [alt.Tooltip(c) for c in ['Date:T','Engagements:Q','Impressions:Q','Percent:Q','Post:N']],
-            opacity=alt.condition(nearest, alt.value(1), alt.value(0)),
-            href='ShareLink:N'
-        )
-        points2 = line2.mark_point(color='#0077b5').encode(
-            [alt.Tooltip(c) for c in ['Date:T','Engagements:Q','Impressions:Q','Percent:Q','Post:N']],
-            opacity=alt.condition(nearest, alt.value(1), alt.value(0)),
-            href='ShareLink:N'
-        )
-        # Draw a rule at the location of the selection
-        rule = alt.Chart(source).mark_rule(color='gray').encode(
-            x='Date:T',
-        ).transform_filter(
-            nearest
-        )
-        # stuff for lower
-        base2 = alt.Chart(source).encode(
-            alt.X('Date:T', axis=alt.Axis(title=None,format="%m/%d/%Y"))
-        )
-        line3 = base2.mark_line(stroke='#86888A', interpolate='monotone').encode(
-            alt.Y('Percent',
-                  axis=alt.Axis(title='Percent',titleColor='#86888A'))
-        )
-        points3 = line3.mark_point(color='#313335').encode(
-            [alt.Tooltip(c) for c in ['Date:T','Engagements:Q','Impressions:Q','Percent:Q','Post:N']],
-            opacity=alt.condition(nearest, alt.value(1), alt.value(0)),
-            href='ShareLink:N'
-        )
-        # Put the layers into a chart and bind the data
-        upper = alt.layer(
-            lines, selectors, points1, points2, rule
-        ).properties(
-            width=100*plot_width, height=100*plot_height
-        ).resolve_scale(
-            y = 'independent'
-        )
-        lower = alt.layer(
-            line3, points3, rule
-        ).properties(
-            width=100*plot_width, height=round(0.66*100*plot_height)
-        )
-        # plots   
-        st.altair_chart(
-            alt.vconcat(
-            upper,
-            lower
-            ).configure_point(
-            size=200
-            ).configure_axis(
-                labelFontSize=15,
-                titleFontSize=20
-        ).configure_title(
-            fontSize=24
-        ))
-        # summary stats
-        engage_stats = [
-            "{0:,.0f}".format(round(sum(df["Engagements"]) / (df["Date"].iloc[-1] - df["Date"].iloc[0]).days)),
-            "{0:,.0f}".format(round(sum(df["Engagements"]))),
-            str("{0:,.0f}".format(round(100 * (df["Engagements"].iloc[-1] - df["Engagements"].iloc[0]) / max(1,df["Engagements"].iloc[0]),2))) + "%"
-        ]
-        impress_stats = [
-            "{0:,.0f}".format(round(sum(df["Impressions"]) / (df["Date"].iloc[-1] - df["Date"].iloc[0]).days)),
-            "{0:,.0f}".format(round(sum(df["Impressions"]))),
-            str("{0:,.0f}".format(round(100 * (df["Impressions"].iloc[-1] - df["Impressions"].iloc[0]) / max(1,df["Impressions"].iloc[0]),2))) + "%"
-        ]
-        stat_names = ["Average","Total","Change"]
-        stats_df = pd.DataFrame([stat_names,engage_stats,impress_stats]).transpose()
-        stats_df.columns = ["Stats Over This Period","Engagements","Impressions"]
+
+        chart = alt.layer(line1, line2)
+
+        st.altair_chart(chart, use_container_width=True)
+
+        # Summary stats
         st.subheader("Summary Statistics")
-        AgGrid(
-            stats_df,
-            width = 100*plot_width,
-            height = round(0.66*100*plot_height),
-            theme = 'fresh',
-            fit_columns_on_grid_load = True
-        )
-        # text
+        st.write(df.describe())
+
+        # ✅ INSIGHTS (FIXED)
+        st.markdown("##")
+        st.subheader("Insights")
+
+        if not df.empty:
+            try:
+                best_day = df.loc[df["Engagements"].idxmax()]
+                st.success(f"Your highest engagement was on {best_day['Date']} with {best_day['Engagements']} engagements.")
+
+                avg_engagement = df["Engagements"].mean()
+                st.info(f"Average engagement: {round(avg_engagement, 2)}")
+
+            except Exception as e:
+                st.warning("Unable to generate insights.")
+        
+        # Table
         st.markdown("##")
         st.subheader("Filtered Data Table")
-        # data table
-        colnames = ["Date","Engagements","Impressions","Percent"]
-        output_df = df
-        output_df = output_df.reindex(columns=colnames)
-        output_df["Engagements"] = pd.Series(["{0:,.0f}".format(val) for val in output_df["Engagements"]], index = output_df.index)
-        output_df["Impressions"] = pd.Series(["{0:,.0f}".format(val) for val in output_df["Impressions"]], index = output_df.index)
-        output_df["Percent"] = pd.Series(["{0:,.2f}%".format(val) for val in output_df["Percent"]], index = output_df.index)
-        output_df = output_df.sort_values(by="Date",axis=0,ascending=False)
-        AgGrid(
-            output_df,
-            width = 100*plot_width,
-            theme = 'fresh',
-            fit_columns_on_grid_load = True
-        )
-    except:
-        st.markdown("**Please upload your data**")
+        st.dataframe(df)
 
+    except Exception as e:
+        st.error(f"Error generating chart: {e}")
 def page3():
     st.write("# LinkedIn Engagement Analysis")
 
-    #Contact form
+    # Socials Connection
+    st.sidebar.title('Connect with me -')
+
+    linkedin_button = '<a href="https://www.linkedin.com/in/sumedhachattree/" target="_blank" style="text-align: center; margin: 0px 10px; padding: 5px 10px; border-radius: 5px; color: white; background-color: #0077B5; text-decoration: none">LinkedIn</a>'
+    github_button = '<a href="https://github.com/SumedhaChattree" target="_blank" style="text-align: center; margin: 0px 10px; padding: 5px 10px; border-radius: 5px; color: white; background-color: #24292E; text-decoration: none">GitHub</a>'
+
+    st.sidebar.markdown(f'{linkedin_button} {github_button}', unsafe_allow_html=True)
+
+    # Contact form
     st.sidebar.markdown('Please fill out the form below to contact me.')
 
-    # Define the form fields
     with st.sidebar.form('Contact Form'):
         name = st.text_input('Name')
         email = st.text_input('Email')
         message = st.text_area('Message')
         submit_button = st.form_submit_button(label='Submit')
 
-    # Process the form submission
     if submit_button:
-        # Send the form data to a backend service, or save it to a database
-        # Here, we're simply printing the form data to the console
         print(f'Name: {name}')
         print(f'Email: {email}')
         print(f'Message: {message}')
-        st.success('Thank you for reaching out to me. I will get back to you as soon as possible.')
-    
+        st.success('Thank you for reaching out! I will get back to you as soon as possible.')
+
     #Main page
     st.subheader("Download Impressions & Engagements Data")
     st.markdown("This file provides the data necessary for plotting.")
